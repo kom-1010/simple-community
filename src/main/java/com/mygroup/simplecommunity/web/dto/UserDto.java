@@ -14,14 +14,18 @@ public class UserDto {
     private String name;
     private String phone;
     private String token;
+    private String newPassword;
+    private String repeatPassword;
 
     @Builder
-    public UserDto(String email, String password, String name, String phone, String token){
+    public UserDto(String email, String password, String name, String phone, String token, String newPassword, String repeatPassword){
         this.email = email;
         this.password = password;
         this.name = name;
         this.phone = phone;
         this.token = token;
+        this.newPassword = newPassword;
+        this.repeatPassword = repeatPassword;
     }
 
     public User toEntity() {

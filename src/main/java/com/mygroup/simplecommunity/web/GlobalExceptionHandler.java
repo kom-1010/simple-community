@@ -19,19 +19,4 @@ public class GlobalExceptionHandler {
                         .message(e.getMessage())
                         .build());
     }
-//    @ExceptionHandler(MissingMandatoryPropertyException.class)
-//    public ResponseEntity<?> missingMandatoryProperty(MissingMandatoryPropertyException e){
-//        return ResponseEntity.status(e.getErrorType().getHttpStatus()).body(ErrorResponseDto.builder()
-//                .type(e.getErrorType().getType())
-//                .message(e.getMessage())
-//                .build());
-//    }
-//
-//    @ExceptionHandler(DuplicatePropertyException.class)
-//    public ResponseEntity<?> duplicateProperty(DuplicatePropertyException e){
-//        return ResponseEntity.status(e.getErrorType().getHttpStatus()).body(ErrorResponseDto.builder()
-//                .type(e.getErrorType().getType())
-//                .message(e.getMessage())
-//                .build());
-//    }
 }

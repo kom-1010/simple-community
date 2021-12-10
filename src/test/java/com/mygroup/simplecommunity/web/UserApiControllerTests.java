@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static com.mygroup.simplecommunity.exception.ErrorType.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -29,6 +29,7 @@ public class UserApiControllerTests {
 
     private String email = "abc123@abcde.com";
     private String password = "abc12345";
+    private String encodedPassword = new BCryptPasswordEncoder().encode(password);
     private String name = "Teddy";
     private String phone = "010-1234-5678";
 
@@ -93,7 +94,7 @@ public class UserApiControllerTests {
         // given
         userRepository.save(User.builder()
                 .email(email)
-                .password(new BCryptPasswordEncoder().encode(password))
+                .password(encodedPassword)
                 .name(name)
                 .phone(phone)
                 .build());
@@ -113,7 +114,7 @@ public class UserApiControllerTests {
         // given
         userRepository.save(User.builder()
                 .email(email)
-                .password(new BCryptPasswordEncoder().encode(password))
+                .password(encodedPassword)
                 .name(name)
                 .phone(phone)
                 .build());
@@ -134,7 +135,7 @@ public class UserApiControllerTests {
         // given
         userRepository.save(User.builder()
                 .email(email)
-                .password(new BCryptPasswordEncoder().encode(password))
+                .password(encodedPassword)
                 .name(name)
                 .phone(phone)
                 .build());
@@ -155,7 +156,7 @@ public class UserApiControllerTests {
         // given
         userRepository.save(User.builder()
                 .email(email)
-                .password(new BCryptPasswordEncoder().encode(password))
+                .password(encodedPassword)
                 .name(name)
                 .phone(phone)
                 .build());
@@ -169,5 +170,205 @@ public class UserApiControllerTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value(LOGIN_FAIL.getType()))
                 .andExpect(jsonPath("$.message").value("Password is invalid"));
+    }
+
+    @Test
+    public void find_email() throws Exception {
+        // given
+        userRepository.save(User.builder().email(email).password(password).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().name(name).phone(phone).build();
+        String url = "/api/v1/users/find-email";
+
+        // when, then
+        mvc.perform(get(url)
+                .contentType("application/json")
+                .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(email));
+    }
+
+    @Test
+    public void find_email_fail_by_missing_mandatory_property() throws Exception {
+        // given
+        userRepository.save(User.builder().email(email).password(password).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().phone(phone).build();
+        String url = "/api/v1/users/find-email";
+
+        // when, then
+        mvc.perform(get(url)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(MISSING_MANDATORY_PROPERTY.getType()))
+                .andExpect(jsonPath("$.message").value("Name is mandatory"));
+    }
+
+    @Test
+    public void find_email_fail_by_user_not_found() throws Exception {
+        // given
+        userRepository.save(User.builder().email(email).password(password).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().name("invalid").phone(phone).build();
+        String url = "/api/v1/users/find-email";
+
+        // when, then
+        mvc.perform(get(url)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(USER_NOT_FOUND.getType()))
+                .andExpect(jsonPath("$.message").value("User cannot be found"));
+    }
+
+    @Test
+    public void find_password() throws Exception {
+        // given
+        userRepository.save(User.builder().email(email).password(password).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().email(email).phone(phone).build();
+        String url = "/api/v1/users/find-pw";
+
+        // when, then
+        mvc.perform(get(url)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(email));
+    }
+
+    @Test
+    public void find_password_fail_by_missing_mandatory_property() throws Exception {
+        // given
+        userRepository.save(User.builder().email(email).password(password).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().phone(phone).build();
+        String url = "/api/v1/users/find-pw";
+
+        // when, then
+        mvc.perform(get(url)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(MISSING_MANDATORY_PROPERTY.getType()))
+                .andExpect(jsonPath("$.message").value("Email is mandatory"));
+    }
+
+    @Test
+    public void find_password_fail_by_not_found_user() throws Exception {
+        // given
+        userRepository.save(User.builder().email(email).password(password).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().email("invalid").phone(phone).build();
+        String url = "/api/v1/users/find-pw";
+
+        // when, then
+        mvc.perform(get(url)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(USER_NOT_FOUND.getType()))
+                .andExpect(jsonPath("$.message").value("User cannot be found"));
+    }
+
+    @Test
+    public void modify_password() throws Exception {
+        // given
+        String modifyPassword = "abc0000";
+        userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder()
+                .email(email)
+                .password(password)
+                .newPassword(modifyPassword)
+                .repeatPassword(modifyPassword)
+                .build();
+        String url = "/api/v1/users/find-pw";
+
+        // when, then
+        mvc.perform(put(url)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isCreated());
+
+        User user = userRepository.findAll().get(0);
+        assertThat(user.matchPassword(modifyPassword)).isTrue();
+    }
+
+    @Test
+    public void modify_password_fail_by_missing_mandatory_property() throws Exception {
+        // given
+        String modifyPassword = "abc0000";
+        userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder()
+                .password(password)
+                .newPassword(modifyPassword)
+                .repeatPassword(modifyPassword)
+                .build();
+        String url = "/api/v1/users/find-pw";
+
+        // when, then
+        mvc.perform(put(url)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(MISSING_MANDATORY_PROPERTY.getType()));
+    }
+
+    @Test
+    public void modify_password_fail_by_user_not_found() throws Exception {
+        // given
+        String modifyPassword = "abc0000";
+        userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder()
+                .email("invalid")
+                .password(password)
+                .newPassword(modifyPassword)
+                .repeatPassword(modifyPassword)
+                .build();
+        String url = "/api/v1/users/find-pw";
+
+        // when, then
+        mvc.perform(put(url)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(USER_NOT_FOUND.getType()));
+    }
+
+    @Test
+    public void modify_password_fail_by_invalid_password() throws Exception {
+        // given
+        String modifyPassword = "abc0000";
+        userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder()
+                .email(email)
+                .password("invalid")
+                .newPassword(modifyPassword)
+                .repeatPassword(modifyPassword)
+                .build();
+        String url = "/api/v1/users/find-pw";
+
+        // when, then
+        mvc.perform(put(url)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(INVALID_PASSWORD.getType()));
+    }
+
+    @Test
+    public void modify_password_fail_by_not_match_new_password_and_repeat_password() throws Exception {
+        // given
+        String modifyPassword = "abc0000";
+        userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder()
+                .email(email)
+                .password(password)
+                .newPassword(modifyPassword)
+                .repeatPassword("invalid")
+                .build();
+        String url = "/api/v1/users/find-pw";
+
+        // when, then
+        mvc.perform(put(url)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(MISMATCH_PASSWORD.getType()));
     }
 }
