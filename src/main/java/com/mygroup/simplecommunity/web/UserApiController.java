@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import static com.mygroup.simplecommunity.exception.ErrorType.MISSING_MANDATORY_PROPERTY;
@@ -47,6 +48,12 @@ public class UserApiController {
     @PutMapping("/find-pw")
     public ResponseEntity<?> modifyPassword(@RequestBody UserDto requestDto){
         UserDto responseDto = userService.modifyPassword(requestDto);
+        return ResponseEntity.status(CREATED).body(responseDto);
+    }
+
+    @PutMapping
+    public ResponseEntity<?> modifyPassword(@AuthenticationPrincipal String userId, @RequestBody UserDto requestDto){
+        UserDto responseDto = userService.modifyPassword(userId, requestDto);
         return ResponseEntity.status(CREATED).body(responseDto);
     }
 }

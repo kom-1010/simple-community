@@ -113,4 +113,12 @@ public class UserService {
 
         return UserDto.builder().build();
     }
+
+    @Transactional
+    public UserDto modifyPassword(String userId, UserDto requestDto) {
+        User user = userRepository.findById(userId).get();
+        user.modifyPassword(requestDto.getNewPassword());
+        user.encodePassword();
+        return UserDto.builder().build();
+    }
 }

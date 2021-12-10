@@ -1,5 +1,6 @@
 package com.mygroup.simplecommunity.security;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.stereotype.Service;
@@ -23,5 +24,10 @@ public class TokenProvider {
                 .setIssuedAt(new Date())
                 .setExpiration(expiryDate)
                 .compact();
+    }
+
+    public String validateAndGetUserId(String token) {
+        Claims claims = Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody();
+        return claims.getSubject();
     }
 }

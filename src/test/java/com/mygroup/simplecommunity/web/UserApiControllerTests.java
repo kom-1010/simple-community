@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mygroup.simplecommunity.domain.user.User;
 import com.mygroup.simplecommunity.domain.user.UserRepository;
+import com.mygroup.simplecommunity.security.TokenProvider;
 import com.mygroup.simplecommunity.web.dto.UserDto;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,8 @@ public class UserApiControllerTests {
     private MockMvc mvc;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private TokenProvider tokenProvider;
 
     private String email = "abc123@abcde.com";
     private String password = "abc12345";
@@ -371,4 +374,35 @@ public class UserApiControllerTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value(MISMATCH_PASSWORD.getType()));
     }
+
+    @Test
+    public void modify_password_with_token() throws Exception {
+        // given
+        String modifyPassword = "abc00000";
+        User user = userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().password(password).newPassword(modifyPassword).repeatPassword(modifyPassword).build();
+        String token = tokenProvider.create(user.getId());
+        String url = "/api/v1/users";
+
+        // when
+        mvc.perform(put(url)
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isCreated());
+
+        // then
+        User modifiedUser = userRepository.findAll().get(0);
+        assertThat(modifiedUser.matchPassword(modifyPassword)).isTrue();
+    }
+
+    public void fail_modify_password_with_token_by_missing_mandatory_property(){}
+    public void fail_modify_password_with_token_by_user_not_found(){}
+    public void fail_modify_password_with_token_by_invalid_password(){}
+    public void fail_modify_password_with_token_by_mismatch_passwords(){}
+    public void fail_modify_password_with_token_by_invalid_token(){}
+    
+    public void remove(){}
+    public void fail_remove_by_user_not_found(){}
+    public void fail_remove_by_invalid_token(){}
 }
