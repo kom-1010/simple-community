@@ -54,4 +54,10 @@ public class PostApiController {
         PostDto responseDto = postService.modify(userId, postId, postDto);
         return ResponseEntity.status(CREATED).body(responseDto);
     }
+
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<?> remove(@AuthenticationPrincipal String userId, @PathVariable Long postId){
+        PostDto responseDto = postService.remove(userId, postId);
+        return ResponseEntity.status(OK).body(responseDto);
+    }
 }

@@ -85,7 +85,7 @@ public class PostService {
     @Transactional
     public PostDto findById(Long postId) {
         Post post = postRepository.findById(postId).orElseThrow(() ->
-                new PostNotFoundException("Post cannot found"));
+                new PostNotFoundException("Post cannot be found"));
 
         return PostDto.builder()
                 .id(post.getId())
@@ -106,10 +106,25 @@ public class PostService {
         if(!userRepository.existsById(userId))
             throw new UserNotFoundException("User cannot be found");
 
-        Post post = postRepository.findById(postId).orElseThrow();
+        Post post = postRepository.findById(postId).orElseThrow(() ->
+                new PostNotFoundException("Post cannot be found"));
         if(!userId.equals(post.getAuthor().getId()))
             throw new UnauthorizedUserException("Only the author of the post can modify it");
         post.modify(postDto.getTitle(), postDto.getContent());
         return PostDto.builder().id(postId).build();
+    }
+
+    public PostDto remove(String userId, Long postId) {
+        if(!userRepository.existsById(userId))
+            throw new UserNotFoundException("User cannot be found");
+
+        Post post = postRepository.findById(postId).orElseThrow(() ->
+                new PostNotFoundException("Post cannot be found"));
+
+        if(!userId.equals(post.getAuthor().getId()))
+            throw new UnauthorizedUserException("Only the author of the post can delete it");
+
+        postRepository.deleteById(postId);
+        return PostDto.builder().build();
     }
 }

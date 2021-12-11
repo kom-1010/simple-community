@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static com.mygroup.simplecommunity.exception.ErrorType.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -295,6 +296,75 @@ public class PostApiControllerTests {
         mvc.perform(put(url).header("Authorization", "Bearer " + "invalid")
                         .contentType("application/json")
                         .content(new ObjectMapper().writeValueAsString(postDto)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.type").value(INVALID_TOKEN.getType()));
+    }
+
+    @Test
+    public void remove() throws Exception {
+        // given
+        Long id = postRepository.save(Post.builder().title(title).content(content).author(author).build()).getId();
+        String url = "/api/v1/posts/" + id;
+
+        // when
+        mvc.perform(delete(url).header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        // then
+        List<Post> posts = postRepository.findAll();
+        assertThat(posts.size()).isEqualTo(0);
+    }
+
+    @Transactional
+    @Test
+    public void fail_remove_by_user_cannot_be_found() throws Exception {
+        // given
+        Long id = postRepository.save(Post.builder().title(title).content(content).author(author).build()).getId();
+        String invalidUserToken = tokenProvider.create("invalid");
+        String url = "/api/v1/posts/" + id;
+
+        // when
+        mvc.perform(delete(url).header("Authorization", "Bearer " + invalidUserToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(USER_NOT_FOUND.getType()));
+
+    }
+
+    @Test
+    public void fail_remove_by_post_cannot_be_found() throws Exception {
+        // given
+        String url = "/api/v1/posts/" + "-1";
+
+        // when
+        mvc.perform(delete(url).header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.type").value(POST_NOT_FOUND.getType()));
+    }
+
+    @Transactional
+    @Test
+    public void fail_remove_by_unauthorized_user() throws Exception {
+        // given
+        Long id = postRepository.save(Post.builder().title(title).content(content).author(author).build()).getId();
+        String otherUserId = userRepository.save(User.builder().email("aaa").password("000").name("Teddy").phone("000").build()).getId();
+        String otherUserToken = tokenProvider.create(otherUserId);
+        String url = "/api/v1/posts/" + id;
+
+        // when
+        mvc.perform(delete(url).header("Authorization", "Bearer " + otherUserToken))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.type").value(UNAUTHORIZED_USER.getType()));
+    }
+
+    @Transactional
+    @Test
+    public void fail_remove_by_invalid_token() throws Exception {
+        // given
+        Long id = postRepository.save(Post.builder().title(title).content(content).author(author).build()).getId();
+        String url = "/api/v1/posts/" + id;
+
+        // when
+        mvc.perform(put(url).header("Authorization", "Bearer " + "invalid"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.type").value(INVALID_TOKEN.getType()));
     }
