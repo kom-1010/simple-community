@@ -46,4 +46,12 @@ public class PostApiController {
         PostDto responseDto = postService.findById(postId);
         return ResponseEntity.status(OK).body(responseDto);
     }
+
+    @PutMapping("/{postId}")
+    public ResponseEntity<?> modify(@AuthenticationPrincipal String userId,
+                                    @PathVariable Long postId,
+                                    @RequestBody PostDto postDto){
+        PostDto responseDto = postService.modify(userId, postId, postDto);
+        return ResponseEntity.status(CREATED).body(responseDto);
+    }
 }

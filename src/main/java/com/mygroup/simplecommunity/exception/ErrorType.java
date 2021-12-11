@@ -10,6 +10,7 @@ import static org.springframework.http.HttpStatus.*;
 @Getter
 @AllArgsConstructor
 public enum ErrorType {
+    UNAUTHORIZED_USER(UNAUTHORIZED, "UNAUTHORIZED_USER"),
     POST_NOT_FOUND(NOT_FOUND, "POST_NOT_FOUND"),
     INVALID_TOKEN(UNAUTHORIZED, "INVALID_TOKEN"),
     MISMATCH_PASSWORD(BAD_REQUEST, "MISMATCH_PASSWORD"),

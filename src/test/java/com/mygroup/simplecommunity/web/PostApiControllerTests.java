@@ -21,8 +21,7 @@ import java.time.LocalDateTime;
 
 import static com.mygroup.simplecommunity.exception.ErrorType.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -201,5 +200,102 @@ public class PostApiControllerTests {
         mvc.perform(get(url))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.type").value(POST_NOT_FOUND.getType()));
+    }
+
+    @Transactional
+    @Test
+    public void modify() throws Exception {
+        // given
+        String modifyTitle = "modify title";
+        String modifyContent = "modify content";
+        Long id = postRepository.save(Post.builder().title(title).content(content).author(author).build()).getId();
+        PostDto postDto = PostDto.builder().title(modifyTitle).content(modifyContent).build();
+        String url = "/api/v1/posts/" + id;
+
+        // when
+        mvc.perform(put(url).header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .content(new ObjectMapper().writeValueAsString(postDto)))
+                .andExpect(status().isCreated());
+
+        // then
+        Post post = postRepository.findAll().get(0);
+        assertThat(post.getTitle()).isEqualTo(modifyTitle);
+        assertThat(post.getContent()).isEqualTo(modifyContent);
+        assertThat(post.getModifiedAt()).isAfter(post.getCreatedAt());
+    }
+
+    @Transactional
+    @Test
+    public void fail_modify_by_missing_mandatory_property() throws Exception {
+        // given
+        String modifyContent = "modify content";
+        Long id = postRepository.save(Post.builder().title(title).content(content).author(author).build()).getId();
+        PostDto postDto = PostDto.builder().content(modifyContent).build();
+        String url = "/api/v1/posts/" + id;
+
+        // when
+        mvc.perform(put(url).header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(postDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(MISSING_MANDATORY_PROPERTY.getType()));
+    }
+
+    @Transactional
+    @Test
+    public void fail_modify_by_user_not_found() throws Exception {
+        // given
+        String modifyTitle = "modify title";
+        String modifyContent = "modify content";
+        Long id = postRepository.save(Post.builder().title(title).content(content).author(author).build()).getId();
+        PostDto postDto = PostDto.builder().title(modifyTitle).content(modifyContent).build();
+        String invalidUserToken = tokenProvider.create("invalid");
+        String url = "/api/v1/posts/" + id;
+
+        // when
+        mvc.perform(put(url).header("Authorization", "Bearer " + invalidUserToken)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(postDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(USER_NOT_FOUND.getType()));
+    }
+
+    @Transactional
+    @Test
+    public void fail_modify_by_not_author() throws Exception {
+        // given
+        String modifyTitle = "modify title";
+        String modifyContent = "modify content";
+        Long id = postRepository.save(Post.builder().title(title).content(content).author(author).build()).getId();
+        PostDto postDto = PostDto.builder().title(modifyTitle).content(modifyContent).build();
+        String otherUserId = userRepository.save(User.builder().email("aaa").password("000").name("Teddy").phone("000").build()).getId();
+        String otherUserToken = tokenProvider.create(otherUserId);
+        String url = "/api/v1/posts/" + id;
+
+        // when
+        mvc.perform(put(url).header("Authorization", "Bearer " + otherUserToken)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(postDto)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.type").value(UNAUTHORIZED_USER.getType()));
+    }
+
+    @Transactional
+    @Test
+    public void fail_modify_by_token_is_invalid() throws Exception {
+        // given
+        String modifyTitle = "modify title";
+        String modifyContent = "modify content";
+        Long id = postRepository.save(Post.builder().title(title).content(content).author(author).build()).getId();
+        PostDto postDto = PostDto.builder().title(modifyTitle).content(modifyContent).build();
+        String url = "/api/v1/posts/" + id;
+
+        // when
+        mvc.perform(put(url).header("Authorization", "Bearer " + "invalid")
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(postDto)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.type").value(INVALID_TOKEN.getType()));
     }
 }

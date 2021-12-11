@@ -6,6 +6,7 @@ import com.mygroup.simplecommunity.domain.user.User;
 import com.mygroup.simplecommunity.domain.user.UserRepository;
 import com.mygroup.simplecommunity.exception.MissingMandatoryPropertyException;
 import com.mygroup.simplecommunity.exception.PostNotFoundException;
+import com.mygroup.simplecommunity.exception.UnauthorizedUserException;
 import com.mygroup.simplecommunity.exception.UserNotFoundException;
 import com.mygroup.simplecommunity.web.dto.PostDto;
 import lombok.RequiredArgsConstructor;
@@ -94,5 +95,21 @@ public class PostService {
                 .createdAt(post.getCreatedAt().toString())
                 .modifiedAt(post.getModifiedAt().toString())
                 .build();
+    }
+
+    @Transactional
+    public PostDto modify(String userId, Long postId, PostDto postDto) {
+        if(postDto.getTitle() == null)
+            throw new MissingMandatoryPropertyException("Title is mandatory");
+        if(postDto.getContent() == null)
+            throw new MissingMandatoryPropertyException("Content is mandatory");
+        if(!userRepository.existsById(userId))
+            throw new UserNotFoundException("User cannot be found");
+
+        Post post = postRepository.findById(postId).orElseThrow();
+        if(!userId.equals(post.getAuthor().getId()))
+            throw new UnauthorizedUserException("Only the author of the post can modify it");
+        post.modify(postDto.getTitle(), postDto.getContent());
+        return PostDto.builder().id(postId).build();
     }
 }
