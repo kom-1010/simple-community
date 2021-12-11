@@ -5,12 +5,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.http.HttpStatus;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import static org.springframework.http.HttpStatus.*;
 
 @Getter
 @AllArgsConstructor
 public enum ErrorType {
+    POST_NOT_FOUND(NOT_FOUND, "POST_NOT_FOUND"),
     INVALID_TOKEN(UNAUTHORIZED, "INVALID_TOKEN"),
     MISMATCH_PASSWORD(BAD_REQUEST, "MISMATCH_PASSWORD"),
     INVALID_PASSWORD(BAD_REQUEST, "INVALID_PASSWORD"),

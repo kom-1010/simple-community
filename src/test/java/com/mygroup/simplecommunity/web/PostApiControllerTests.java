@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 
 import static com.mygroup.simplecommunity.exception.ErrorType.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -123,5 +124,82 @@ public class PostApiControllerTests {
                         .content(new ObjectMapper().writeValueAsString(postDto)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.type").value(INVALID_TOKEN.getType()));
+    }
+
+    @Transactional
+    @Test
+    public void find_all_desc() throws Exception {
+        // given
+        postRepository.save(Post.builder().title(title).content(content).author(author).build());
+        String url = "/api/v1/posts";
+
+        // when, then
+        mvc.perform(get(url))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].title").value(title))
+                .andExpect(jsonPath("$[0].content").value(content))
+                .andExpect(jsonPath("$[0].author").value(name))
+                .andExpect(jsonPath("$[0].createdAt").exists());
+    }
+
+    @Transactional
+    @Test
+    public void find_all_desc_by_title() throws Exception {
+        // given
+        postRepository.save(Post.builder().title(title).content(content).author(author).build());
+        String url = "/api/v1/posts?title=" + "he";
+
+        // when, then
+        mvc.perform(get(url))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].title").value(title))
+                .andExpect(jsonPath("$[0].content").value(content))
+                .andExpect(jsonPath("$[0].createdAt").exists())
+                .andExpect(jsonPath("$[0].author").value(name));
+    }
+
+    @Transactional
+    @Test
+    public void find_all_desc_by_author() throws Exception {
+        // given
+        postRepository.save(Post.builder().title(title).content(content).author(author).build());
+        String url = "/api/v1/posts?author=" + "To";
+
+        // when, then
+        mvc.perform(get(url))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].title").value(title))
+                .andExpect(jsonPath("$[0].content").value(content))
+                .andExpect(jsonPath("$[0].author").value(name))
+                .andExpect(jsonPath("$[0].createdAt").exists());
+    }
+
+    @Transactional
+    @Test
+    public void find_by_id() throws Exception {
+        // given
+        Long id = postRepository.save(Post.builder().title(title).content(content).author(author).build()).getId();
+        String url = "/api/v1/posts/" + id;
+
+        // when, then
+        mvc.perform(get(url))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value(title))
+                .andExpect(jsonPath("$.content").value(content))
+                .andExpect(jsonPath("$.createdAt").exists())
+                .andExpect(jsonPath("$.author").value(name));
+    }
+
+    @Transactional
+    @Test
+    public void find_by_id_by_not_found_post() throws Exception {
+        // given
+        Long id = postRepository.save(Post.builder().title(title).content(content).author(author).build()).getId();
+        String url = "/api/v1/posts/" + "-1";
+
+        // when, then
+        mvc.perform(get(url))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.type").value(POST_NOT_FOUND.getType()));
     }
 }

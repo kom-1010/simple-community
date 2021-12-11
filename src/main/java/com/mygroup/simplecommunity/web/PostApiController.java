@@ -3,13 +3,13 @@ package com.mygroup.simplecommunity.web;
 import com.mygroup.simplecommunity.service.PostService;
 import com.mygroup.simplecommunity.web.dto.PostDto;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import static org.springframework.http.HttpStatus.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/posts")
@@ -20,6 +20,30 @@ public class PostApiController {
     @PostMapping
     public ResponseEntity<?> create(@AuthenticationPrincipal String userId, @RequestBody PostDto requestDto){
         PostDto responseDto = postService.create(userId, requestDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
+        return ResponseEntity.status(CREATED).body(responseDto);
+    }
+
+    @GetMapping
+    public ResponseEntity<?> findAllDesc(){
+        List<PostDto> responseDto = postService.findAllDesc();
+        return ResponseEntity.status(OK).body(responseDto);
+    }
+
+    @GetMapping(params = "title")
+    public ResponseEntity<?> findAllDescByTitle(@RequestParam("title") String keyword){
+        List<PostDto> responseDto = postService.findAllDescByTitle(keyword);
+        return ResponseEntity.status(OK).body(responseDto);
+    }
+
+    @GetMapping(params = "author")
+    public ResponseEntity<?> findAllDescByAuthor(@RequestParam("author") String keyword){
+        List<PostDto> responseDto = postService.findAllDescByAuthor(keyword);
+        return ResponseEntity.status(OK).body(responseDto);
+    }
+
+    @GetMapping("/{postId}")
+    public ResponseEntity<?> findById(@PathVariable Long postId){
+        PostDto responseDto = postService.findById(postId);
+        return ResponseEntity.status(OK).body(responseDto);
     }
 }
