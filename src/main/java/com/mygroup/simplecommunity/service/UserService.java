@@ -100,7 +100,7 @@ public class UserService {
         if(requestDto.getRepeatPassword() == null)
             throw new MissingMandatoryPropertyException("Repeat Password is mandatory");
         if(!requestDto.getNewPassword().equals(requestDto.getRepeatPassword()))
-            throw new MismatchPasswordException("Password is mismatched");
+            throw new MismatchPasswordException("Passwords is mismatched");
 
         User user = userRepository.findByEmail(requestDto.getEmail()).orElseThrow(() ->
                 new UserNotFoundException("User cannot be found"));
@@ -116,9 +116,45 @@ public class UserService {
 
     @Transactional
     public UserDto modifyPassword(String userId, UserDto requestDto) {
-        User user = userRepository.findById(userId).get();
+        if(requestDto.getPassword() == null)
+            throw new MissingMandatoryPropertyException("Password is mandatory");
+        if(requestDto.getNewPassword() == null)
+            throw new MissingMandatoryPropertyException("New Password is mandatory");
+        if(requestDto.getRepeatPassword() == null)
+            throw new MissingMandatoryPropertyException("Repeat Password is mandatory");
+        if(!requestDto.getNewPassword().equals(requestDto.getRepeatPassword()))
+            throw new MismatchPasswordException("Passwords is mismatched");
+
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new UserNotFoundException("User cannot be found"));
+
+        if(!user.matchPassword(requestDto.getPassword()))
+            throw new InvalidPasswordException("Password is invalid");
+
         user.modifyPassword(requestDto.getNewPassword());
         user.encodePassword();
+        return UserDto.builder().build();
+    }
+
+    @Transactional
+    public UserDto modifyProfile(String userId, UserDto requestDto) {
+        if(requestDto.getName() == null)
+            throw new MissingMandatoryPropertyException("Name is mandatory");
+        if(requestDto.getPhone() == null)
+            throw new MissingMandatoryPropertyException("Phone number is mandatory");
+
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new UserNotFoundException("User cannot be found"));
+
+        user.modifyProfile(requestDto.getName(), requestDto.getPhone());
+        return UserDto.builder().build();
+    }
+
+    @Transactional
+    public UserDto remove(String userId) {
+        if(!userRepository.existsById(userId))
+            throw new UserNotFoundException("User cannot be found");
+        userRepository.deleteById(userId);
         return UserDto.builder().build();
     }
 }

@@ -1,8 +1,7 @@
 package com.mygroup.simplecommunity.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import com.mygroup.simplecommunity.exception.InvalidTokenException;
+import io.jsonwebtoken.*;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -27,7 +26,21 @@ public class TokenProvider {
     }
 
     public String validateAndGetUserId(String token) {
-        Claims claims = Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody();
+        Claims claims = null;
+        try {
+            claims = Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody();
+        } catch (ExpiredJwtException e) {
+            e.printStackTrace();
+        } catch (UnsupportedJwtException e) {
+            e.printStackTrace();
+        } catch (MalformedJwtException e) {
+            e.printStackTrace();
+            throw new InvalidTokenException("Token is invalid");
+        } catch (SignatureException e) {
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        }
         return claims.getSubject();
     }
 }

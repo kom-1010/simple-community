@@ -52,8 +52,23 @@ public class UserApiController {
     }
 
     @PutMapping
-    public ResponseEntity<?> modifyPassword(@AuthenticationPrincipal String userId, @RequestBody UserDto requestDto){
-        UserDto responseDto = userService.modifyPassword(userId, requestDto);
+    public ResponseEntity<?> modify(@AuthenticationPrincipal String userId, @RequestBody UserDto requestDto){
+        UserDto responseDto;
+        // dto에 password가 있다면 modifyPassword 실행
+        if(requestDto.getPassword() != null)
+            responseDto = userService.modifyPassword(userId, requestDto);
+        // dto에 password가 없다면 modifyProfile 실행
+        else if(requestDto.getName() != null)
+            responseDto = userService.modifyProfile(userId, requestDto);
+        else
+            throw new MissingMandatoryPropertyException("Property is null");
+
         return ResponseEntity.status(CREATED).body(responseDto);
+    }
+
+    @DeleteMapping
+    public ResponseEntity<?> remove(@AuthenticationPrincipal String userId){
+        UserDto responseDto = userService.remove(userId);
+        return ResponseEntity.status(OK).body(responseDto);
     }
 }

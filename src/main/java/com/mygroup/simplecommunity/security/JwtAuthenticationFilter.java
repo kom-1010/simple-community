@@ -1,6 +1,8 @@
 package com.mygroup.simplecommunity.security;
 
 import antlr.Token;
+import com.mygroup.simplecommunity.exception.InvalidTokenException;
+import io.jsonwebtoken.MalformedJwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -36,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 securityContext.setAuthentication(authentication);
                 SecurityContextHolder.setContext(securityContext);
             }
-        } catch (Exception e) {
+        } catch (MalformedJwtException e) {
             e.printStackTrace();
         }
         filterChain.doFilter(request, response);

@@ -14,6 +14,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static com.mygroup.simplecommunity.exception.ErrorType.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -396,13 +398,218 @@ public class UserApiControllerTests {
         assertThat(modifiedUser.matchPassword(modifyPassword)).isTrue();
     }
 
-    public void fail_modify_password_with_token_by_missing_mandatory_property(){}
-    public void fail_modify_password_with_token_by_user_not_found(){}
-    public void fail_modify_password_with_token_by_invalid_password(){}
-    public void fail_modify_password_with_token_by_mismatch_passwords(){}
-    public void fail_modify_password_with_token_by_invalid_token(){}
-    
-    public void remove(){}
-    public void fail_remove_by_user_not_found(){}
-    public void fail_remove_by_invalid_token(){}
+    @Test
+    public void fail_modify_password_with_token_by_missing_mandatory_property() throws Exception {
+        // given
+        String modifyPassword = "abc00000";
+        User user = userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().newPassword(modifyPassword).repeatPassword(modifyPassword).build();
+        String token = tokenProvider.create(user.getId());
+        String url = "/api/v1/users";
+
+        // when, then
+        mvc.perform(put(url)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(MISSING_MANDATORY_PROPERTY.getType()));
+    }
+
+    @Test
+    public void fail_modify_password_with_token_by_user_not_found() throws Exception {
+        // given
+        String modifyPassword = "abc00000";
+        userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().password(password).newPassword(modifyPassword).repeatPassword(modifyPassword).build();
+        String token = tokenProvider.create("invalid");
+        String url = "/api/v1/users";
+
+        // when, then
+        mvc.perform(put(url)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(USER_NOT_FOUND.getType()));
+    }
+
+    @Test
+    public void fail_modify_password_with_token_by_invalid_password() throws Exception {
+        // given
+        String modifyPassword = "abc00000";
+        User user = userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().password("invalid").newPassword(modifyPassword).repeatPassword(modifyPassword).build();
+        String token = tokenProvider.create(user.getId());
+        String url = "/api/v1/users";
+
+        // when, then
+        mvc.perform(put(url)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(INVALID_PASSWORD.getType()));
+    }
+
+    @Test
+    public void fail_modify_password_with_token_by_mismatch_passwords() throws Exception {
+        // given
+        String modifyPassword = "abc00000";
+        User user = userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().password(password).newPassword(modifyPassword).repeatPassword("invalid").build();
+        String token = tokenProvider.create(user.getId());
+        String url = "/api/v1/users";
+
+        // when, then
+        mvc.perform(put(url)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(MISMATCH_PASSWORD.getType()));
+    }
+
+    @Test
+    public void fail_modify_password_with_token_by_invalid_token() throws Exception {
+        // given
+        String modifyPassword = "abc00000";
+        userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().password(password).newPassword(modifyPassword).repeatPassword(modifyPassword).build();
+        String token = "invalid";
+        String url = "/api/v1/users";
+
+        // when, then
+        mvc.perform(put(url)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.type").value(INVALID_TOKEN.getType()));
+    }
+
+    @Test
+    public void modify_profile() throws Exception {
+        // given
+        String modifyName = "Tom";
+        String modifyPhone = "000-1111-2222";
+        User user = userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().name(modifyName).phone(modifyPhone).build();
+        String token = tokenProvider.create(user.getId());
+        String url = "/api/v1/users";
+
+        // when
+        mvc.perform(put(url)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isCreated());
+
+        // then
+        User modifiedUser = userRepository.findAll().get(0);
+        assertThat(modifiedUser.getName()).isEqualTo(modifyName);
+        assertThat(modifiedUser.getPhone()).isEqualTo(modifyPhone);
+    }
+
+    @Test
+    public void fail_modify_profile_by_missing_mandatory_property() throws Exception {
+        // given
+        String modifyName = "Tom";
+        String modifyPhone = "000-1111-2222";
+        User user = userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().phone(modifyPhone).build();
+        String token = tokenProvider.create(user.getId());
+        String url = "/api/v1/users";
+
+        // when, then
+        mvc.perform(put(url)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(MISSING_MANDATORY_PROPERTY.getType()));
+    }
+
+    @Test
+    public void fail_modify_profile_by_user_not_found() throws Exception {
+        // given
+        String modifyName = "Tom";
+        String modifyPhone = "000-1111-2222";
+        userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().name(modifyName).phone(modifyPhone).build();
+        String token = tokenProvider.create("invalid");
+        String url = "/api/v1/users";
+
+        // when, then
+        mvc.perform(put(url)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(USER_NOT_FOUND.getType()));
+    }
+
+    @Test
+    public void fail_modify_profile_by_invalid_token() throws Exception {
+        // given
+        String modifyName = "Tom";
+        String modifyPhone = "000-1111-2222";
+        userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        UserDto userDto = UserDto.builder().phone(modifyPhone).build();
+        String token = "invalid";
+        String url = "/api/v1/users";
+
+        // when, then
+        mvc.perform(put(url)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(userDto)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.type").value(INVALID_TOKEN.getType()));
+    }
+
+    @Test
+    public void remove() throws Exception {
+        // given
+        User user = userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        String token = tokenProvider.create(user.getId());
+        String url = "/api/v1/users";
+
+        // when
+        mvc.perform(delete(url)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        // then
+        List<User> users = userRepository.findAll();
+        assertThat(users.size()).isEqualTo(0);
+    }
+
+    @Test
+    public void fail_remove_by_user_not_found() throws Exception {
+        // given
+        userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        String token = tokenProvider.create("invalid");
+        String url = "/api/v1/users";
+
+        // when
+        mvc.perform(delete(url)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(USER_NOT_FOUND.getType()));
+    }
+
+    @Test
+    public void fail_remove_by_invalid_token() throws Exception {
+        // given
+        userRepository.save(User.builder().email(email).password(encodedPassword).name(name).phone(phone).build());
+        String token = "invalid";
+        String url = "/api/v1/users";
+
+        // when
+        mvc.perform(delete(url)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.type").value(INVALID_TOKEN.getType()));
+    }
 }
